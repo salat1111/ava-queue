@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&subset=cyrillic&display=swap" rel="stylesheet">
+<title>AVA Queue — электронная очередь</title>
+<style>
+:root{
+  --ink:#141414; --gold:#A59843; --gold-d:#8E8238; --gold-t:#7A7032;
+  --cream:#FAF8F2; --card:#fff; --line:#E4DFD0; --muted:#6B6B63; --bg:#E6E3DA;
+  --free:#3FA773; --busy:#C9503F; --soon:#E2A22B;
+  --serif:"Playfair Display",Georgia,serif;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column}
+/* верхняя панель */
+.bar{display:flex;align-items:center;gap:16px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand i{width:34px;height:34px;border-radius:10px;background:var(--ink);color:var(--gold);display:grid;place-items:center;font:600 18px var(--serif);font-style:normal}
+.brand b{font:600 17px var(--serif);letter-spacing:.1em;display:block;line-height:1.1}
+.brand span{font-size:12px;color:var(--muted)}
+.bar label{font-size:13px;color:var(--muted)}
+.bar select{font:inherit;font-size:14px;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);max-width:300px}
+.reset{all:unset;cursor:pointer;background:var(--ink);color:#fff;padding:10px 20px;border-radius:30px;font-size:14px;font-weight:600}
+.reset:hover{background:#333}
+/* сцена */
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px;min-height:0;gap:14px}
+.phone{width:372px;height:min(740px,calc(100vh - 170px));min-height:560px;background:var(--cream);border-radius:44px;border:9px solid #171717;box-shadow:0 30px 60px rgba(20,20,20,.22);overflow:hidden;position:relative;flex-shrink:0}
+.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:92px;height:26px;background:#000;border-radius:16px;z-index:6}
+.status{position:absolute;top:10px;left:26px;right:26px;display:flex;justify-content:space-between;font-size:12px;font-weight:600;z-index:5;pointer-events:none}
+.screen{position:absolute;inset:0;padding:50px 20px 20px;display:none;flex-direction:column;overflow-y:auto}
+.screen.on{display:flex;animation:in .3s ease}
+@keyframes in{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.caption{background:#fff;border:1px solid var(--line);border-radius:16px;padding:8px 22px;text-align:center}
+.caption small{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.caption b{font-size:15px}
+.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;font-weight:700;font-size:14px}
+.top .tag{font-weight:400;font-size:12px;color:var(--muted)}
+h2{font:600 23px/1.2 var(--serif);margin-bottom:8px}
+.sub{color:var(--muted);line-height:1.45;font-size:14.5px}
+.grow{flex:1;min-height:10px}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;background:var(--gold);color:#fff;font-weight:600;padding:15px;border-radius:30px;font-size:16px;margin-top:14px;transition:transform .1s,background .15s}
+.btn:hover{background:var(--gold-d)} .btn:active{transform:scale(.98)}
+.btn.ghost{background:transparent;border:1.5px solid var(--ink);color:var(--ink);padding:13px}
+.btn.ghost:hover{background:rgba(0,0,0,.05)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.card{background:var(--card);border-radius:18px;padding:15px;border:1px solid var(--line);margin-top:12px}
+.row{display:flex;justify-content:space-between;align-items:center}
+.restart{all:unset;cursor:pointer;font-size:13px;color:var(--muted);text-align:center;margin-top:10px;text-decoration:underline}
+/* 1 */
+.poster{background:var(--ink);color:#fff;border-radius:24px;padding:24px 18px;text-align:center}
+.poster small{color:var(--gold);letter-spacing:.14em;text-transform:uppercase;font-size:11px}
+.poster h3{font:600 22px/1.25 var(--serif);margin:8px 0 16px}
+.qr{width:148px;height:148px;margin:0 auto 14px;background:#fff;border-radius:14px;padding:12px;display:grid;grid-template-columns:repeat(9,1fr);gap:2px}
+.qr span{background:#141414;border-radius:1px} .qr span.w{background:transparent}
+/* 2 */
+.stat{display:flex;gap:10px;margin-top:14px}
+.stat div{flex:1;background:#fff;border:1px solid var(--line);border-radius:16px;padding:13px}
+.stat b{font:600 28px var(--serif);display:block}
+.stat span{font-size:12px;color:var(--muted)}
+/* 3 */
+.stepper{display:flex;align-items:center;justify-content:center;gap:22px;margin:4px 0 2px}
+.stepper button{all:unset;cursor:pointer;width:42px;height:42px;border-radius:50%;background:var(--ink);color:#fff;font-size:22px;display:grid;place-items:center}
+.stepper b{font:600 40px var(--serif);min-width:50px;text-align:center}
+.hall{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.tbl{all:unset;cursor:pointer;box-sizing:border-box;border-radius:14px;padding:9px 4px;text-align:center;font-size:11.5px;border:2px solid transparent;background:#fff;line-height:1.3}
+.tbl b{display:block;font-size:14px}
+.tbl.free{border-color:var(--free)} .tbl.soon{border-color:var(--soon)} .tbl.busy{border-color:#ddd;color:#a9a39a;background:#f1eee6;cursor:not-allowed}
+.tbl.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tbl.small{opacity:.4;pointer-events:none}
+.legend{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px}
+.note{font-size:13px;color:var(--gold-t);margin-top:8px;min-height:34px;line-height:1.4}
+/* 4 */
+label.f{font-size:13px;color:var(--muted);display:block;margin:12px 0 6px}
+input{width:100%;font:inherit;font-size:18px;padding:13px;border-radius:14px;border:1.5px solid var(--line);background:#fff;color:var(--ink)}
+input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--busy)}
+.err{color:var(--busy);font-size:13px;min-height:18px;margin-top:6px}
+.sum ul{padding:0} .sum li{list-style:none;display:flex;justify-content:space-between;padding:5px 0;font-size:14.5px} .sum li span{color:var(--muted)}
+/* 5 */
+.num{text-align:center;background:var(--ink);color:#fff;border-radius:26px;padding:22px 16px}
+.num small{opacity:.75;font-size:13px}
+.num b{display:block;font:600 70px/1 var(--serif);margin:6px 0;color:var(--gold)}
+.pbar{height:7px;border-radius:8px;background:rgba(255,255,255,.18);margin-top:14px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--gold);border-radius:8px;transition:width .5s}
+/* 6 */
+.dish{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.dish:last-child{border:0}
+.dish .e{width:46px;height:46px;border-radius:14px;background:#F1EDD6;display:grid;place-items:center;font-size:23px}
+.dish .t{flex:1} .dish .t b{display:block;font-size:14.5px} .dish .t span{font-size:12px;color:var(--muted)}
+.add{all:unset;cursor:pointer;background:var(--ink);color:#fff;padding:8px 13px;border-radius:20px;font-size:13px;font-weight:600}
+.add.in{background:var(--free)}
+.cartbar{display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:14.5px}
+/* 7, 8 */
+.big{font-size:56px;text-align:center;margin:22px 0 4px}
+.ticket{background:#fff;border:2px dashed var(--ink);border-radius:22px;padding:20px;text-align:center}
+.ticket b{font:600 54px var(--serif);color:var(--ink);display:block}
+.opt{all:unset;cursor:pointer;display:block;background:#fff;border:1.5px solid var(--line);border-radius:18px;padding:14px;margin-top:10px}
+.opt:hover{border-color:var(--ink)}
+.opt b{display:block;font-size:15px;margin-bottom:2px} .opt span{font-size:13px;color:var(--muted)}
+.toast{position:absolute;left:18px;right:18px;top:44px;background:#171717;color:#fff;padding:11px 14px;border-radius:14px;font-size:13px;transform:translateY(-120px);transition:transform .3s;z-index:7}
+.toast.show{transform:none}
+@media (max-width:760px){
+  .bar{padding:8px 12px;gap:8px}.brand span,.bar label{display:none}
+  .stage{padding:0;gap:0}
+  .phone{width:100%;height:100%;min-height:0;border:0;border-radius:0;flex:1}
+  .notch,.status{display:none}.screen{padding-top:20px}
+  .caption{display:none}
+  .toast{top:12px}
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><i>A</i><div><b>AVA QUEUE</b><span>Прототип · ресторан AVA на Патриарших</span></div></div>
+  <label for="scn">Сценарий</label>
+  <select id="scn">
+    <option value="main">Основной путь</option>
+    <option value="alt">Нет подходящего стола</option>
+    <option value="late">Гость не пришёл за 10 минут</option>
+    <option value="bad">Ошибка в номере телефона</option>
+  </select>
+  <button class="reset" id="reset">Сначала</button>
+</header>
+
+<main class="stage">
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="status"><span id="clock">18:05</span><span>●●● 5G</span></div>
+    <div class="toast" id="toast"></div>
+
+    <section class="screen" data-s="1">
+      <div class="top"><span>AVA Queue</span><span class="tag">у входа в ресторан</span></div>
+      <div class="poster">
+        <small>Ресторан AVA на Патриарших</small>
+        <h3>Все столы заняты?<br>Не стойте у двери</h3>
+        <div class="qr" id="qr"></div>
+        <p style="font-size:13.5px;opacity:.9">Наведите камеру телефона на код. Запись откроется сразу, приложение ставить не нужно</p>
+      </div>
+      <div class="grow"></div>
+      <button class="btn" data-go="2">Сканировать QR-код</button>
+    </section>
+
+    <section class="screen" data-s="2">
+      <div class="top"><span>AVA Queue</span><span class="tag">AVA на Патриарших</span></div>
+      <h2>Сейчас в зале нет мест</h2>
+      <p class="sub">Запишитесь в очередь, и мы позовём вас, когда стол освободится. Можно прогуляться по Малой Бронной.</p>
+      <div class="stat">
+        <div><b>5</b><span>групп перед вами</span></div>
+        <div><b>~25 мин</b><span>примерное ожидание</span></div>
+      </div>
+      <div class="card"><div class="row"><span>🍽 Обычно ждут</span><b>20–30 минут</b></div></div>
+      <div class="grow"></div>
+      <button class="btn" data-go="3">Встать в очередь</button>
+    </section>
+
+    <section class="screen" data-s="3">
+      <div class="top"><span>Шаг 1 из 2</span><span class="tag">запись в очередь</span></div>
+      <h2>Сколько вас придёт?</h2>
+      <div class="stepper"><button id="minus" aria-label="Меньше">−</button><b id="guests">2</b><button id="plus" aria-label="Больше">+</button></div>
+      <p class="sub" style="text-align:center">гостей</p>
+      <div class="hall" id="hall"></div>
+      <div class="legend"><span><i style="background:var(--free)"></i>свободен</span><span><i style="background:var(--soon)"></i>скоро освободится</span><span><i style="background:#ccc"></i>занят</span></div>
+      <div class="note" id="tnote">Выберите столик или оставьте «любой подходящий»: так вы сядете быстрее.</div>
+      <div class="grow"></div>
+      <button class="btn" id="next3">Продолжить</button>
+    </section>
+
+    <section class="screen" data-s="3b">
+      <div class="top"><span>Шаг 1 из 2</span><span class="tag">запись в очередь</span></div>
+      <div class="big" style="font-size:44px;margin-top:8px">🪑</div>
+      <h2 style="text-align:center">Этот стол сейчас занят</h2>
+      <p class="sub" style="text-align:center">За столом <b id="altT">№ 4 у окна</b> гости только что заказали десерт. Выберите, как поступить.</p>
+      <button class="opt" data-alt="wait"><b>Подождать этот стол</b><span>Около 40 минут. Стол закрепим за вами.</span></button>
+      <button class="opt" data-alt="any"><b>Любой подходящий стол</b><span>Около 20 минут. Посадим туда, где освободится раньше.</span></button>
+      <div class="grow"></div>
+      <button class="restart" data-go="3">Выбрать другой стол</button>
+    </section>
+
+    <section class="screen" data-s="4">
+      <div class="top"><span>Шаг 2 из 2</span><span class="tag">запись в очередь</span></div>
+      <h2>Куда прислать сообщение, когда стол будет готов?</h2>
+      <label class="f" for="phoneIn">Номер телефона</label>
+      <input id="phoneIn" inputmode="tel" placeholder="+7 900 000-00-00" autocomplete="off">
+      <div class="err" id="perr"></div>
+      <div class="card sum"><ul>
+        <li><span>Гостей</span><b id="sG">2</b></li>
+        <li><span>Столик</span><b id="sT">любой подходящий</b></li>
+        <li><span>Ожидание</span><b id="sW">≈ 25 минут</b></li>
+      </ul></div>
+      <div class="grow"></div>
+      <button class="btn" id="confirm">Подтвердить</button>
+    </section>
+
+    <section class="screen" data-s="5">
+      <div class="top"><span>Вы в очереди</span><span class="tag">AVA на Патриарших</span></div>
+      <div class="num"><small>Ваш номер</small><b>А-17</b><small id="wait">Перед вами 5 групп · ~25 мин</small><div class="pbar"><i id="prog" style="width:15%"></i></div></div>
+      <p class="sub" style="margin-top:12px">Можно спокойно отойти. Мы напишем, когда перед вами останется одна группа.</p>
+      <button class="btn ghost" id="refresh">Обновить статус</button>
+      <div class="grow"></div>
+      <button class="btn" data-go="6">Посмотреть меню</button>
+      <button class="restart" id="restart5">Начать сначала</button>
+    </section>
+
+    <section class="screen" data-s="6">
+      <div class="top"><span>Меню</span><span class="tag">А-17 · ждём стол</span></div>
+      <h2>Закажите заранее: блюда будут к вашему приходу</h2>
+      <div class="card" style="padding:2px 14px" id="menu"></div>
+      <div class="cartbar"><span>В корзине: <span id="cCount">0</span></span><span id="cSum">0 ₽</span></div>
+      <div class="grow"></div>
+      <button class="btn" id="pay" disabled>Заказать и оплатить</button>
+      <button class="btn ghost" data-go="7" style="margin-top:8px">Пропустить, закажу в зале</button>
+    </section>
+
+    <section class="screen" data-s="7">
+      <div class="top"><span>AVA Queue</span><span class="tag">А-17</span></div>
+      <div class="big">🔔</div>
+      <h2 style="text-align:center">Ваш стол готов!</h2>
+      <p class="sub" style="text-align:center">Столик <b id="rT">№ 4 у окна</b> ждёт вас. Мы держим его 10 минут.</p>
+      <div class="card" style="text-align:center"><span class="sub">Осталось на подход</span><div style="font:600 34px var(--serif)" id="timer">10:00</div><span class="sub" id="tmNote" style="font-size:12px"></span></div>
+      <div class="grow"></div>
+      <button class="btn" data-go="8">Я иду</button>
+    </section>
+
+    <section class="screen" data-s="7b">
+      <div class="top"><span>AVA Queue</span><span class="tag">А-17</span></div>
+      <div class="big">⏱</div>
+      <h2 style="text-align:center">Время вышло</h2>
+      <p class="sub" style="text-align:center">Мы не дождались вас, и стол пришлось отдать следующим гостям. Номер А-17 закрыт. Предзаказ, если он был, вернём на карту.</p>
+      <div class="grow"></div>
+      <button class="btn" data-go="3">Встать в очередь заново</button>
+      <button class="restart" id="restart7">В начало</button>
+    </section>
+
+    <section class="screen" data-s="8">
+      <div class="top"><span>AVA Queue</span><span class="tag">у входа</span></div>
+      <h2>Покажите этот номер администратору</h2>
+      <div class="ticket"><small class="sub">Очередь</small><b>А-17</b><span class="sub" id="tkInfo">2 гостя · столик № 4 у окна</span></div>
+      <div class="card"><span id="orderInfo" class="sub">Предзаказа нет, меню принесут за столом.</span></div>
+      <div class="grow"></div>
+      <button class="btn" id="show">Показать номер</button>
+      <button class="restart" id="restart8">Пройти путь ещё раз</button>
+    </section>
+  </div>
+  <div class="caption"><small>Сейчас на экране</small><b id="cap">Экран 1 · QR-код у входа</b></div>
+</main>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const titles={"1":"Экран 1 · QR-код у входа","2":"Экран 2 · Открыт сервис","3":"Экран 3 · Выбор гостей и стола","3b":"Экран 3б · Стол занят","4":"Экран 4 · Подтверждение записи","5":"Экран 5 · Ожидание стола","6":"Экран 6 · Меню и предзаказ","7":"Экран 7 · Стол готов","7b":"Экран 7б · Время вышло","8":"Экран 8 · Посадка"};
+const tables=[["1","2 места","free",2],["2","2 места","busy",2],["3","4 места","soon",4],["4","у окна, 4 места","free",4],["5","4 места","busy",4],["6","6 мест","soon",6],["7","6 мест","free",6],["8","8 мест","busy",8],["9","диван, 4 места","free",4]];
+const dishes=[["🍲","Борщ с пампушками","Подаётся горячим",390],["🥟","Пельмени домашние","Со сметаной",450],["🥗","Салат с печёной свёклой","Козий сыр, орехи",420],["🍰","Медовик","Порция на двоих",310]];
+let st,tm;
+function fresh(){st={guests:2,table:null,cart:{},waitLeft:5,waitMin:25}}
+
+function go(id){
+  $$(".screen").forEach(s=>s.classList.toggle("on",s.dataset.s===id));
+  $("#cap").textContent=titles[id];
+  clearInterval(tm);
+  if(id==="3b")$("#altT").textContent=tName()==="любой подходящий"?"№ 4 у окна":tName();
+  if(id==="4")fillSummary();
+  if(id==="7")startTimer();
+  if(id==="8")fillFinal();
+}
+document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g)go(g.dataset.go)});
+
+// QR-код (декоративный)
+(()=>{const qr=$("#qr");for(let i=0;i<81;i++){const s=document.createElement("span");const r=Math.floor(i/9),c=i%9;
+ const corner=(r<3&&c<3)||(r<3&&c>5)||(r>5&&c<3);s.className=corner?(r%3==1&&c%3==1?"w":""):(((i*7)%5<2)?"":"w");qr.appendChild(s)}})();
+
+// столы
+function tName(){const t=tables.find(x=>x[0]===st.table);return t?`№ ${t[0]}${t[1].startsWith("у окна")?" у окна":""}`:"любой подходящий"}
+function plural(n){return n===1?"гость":(n<5?"гостя":"гостей")}
+function note(t){$("#tnote").textContent=t}
+function renderHall(){
+  const h=$("#hall");h.innerHTML="";
+  tables.forEach(([n,d,state,cap])=>{
+    const b=document.createElement("button");
+    b.className=`tbl ${state}${cap>=st.guests?"":" small"}${st.table===n?" sel":""}`;
+    b.innerHTML=`<b>№ ${n}</b>${d}`;
+    b.onclick=()=>{
+      if(state==="busy"){note("Этот стол занят. Выберите другой или «любой подходящий»: так быстрее.");return}
+      st.table=st.table===n?null:n;
+      note(st.table?(state==="soon"?`Стол № ${n} скоро освободится. Ждать его придётся чуть дольше, около 35 минут.`:`Стол № ${n} свободен для вашей компании. Ожидание не изменится.`):"Выбор снят: посадим за любой подходящий стол.");
+      renderHall();
+    };
+    h.appendChild(b);
+  });
+}
+function sync(){$("#guests").textContent=st.guests;const t=tables.find(x=>x[0]===st.table);if(t&&t[3]<st.guests)st.table=null;renderHall()}
+$("#plus").onclick=()=>{if(st.guests<8){st.guests++;sync()}};
+$("#minus").onclick=()=>{if(st.guests>1){st.guests--;sync()}};
+
+// продолжить с экрана 3: в сценарии «нет стола» показываем экран 3б
+$("#next3").onclick=()=>go($("#scn").value==="alt"?"3b":"4");
+$$("[data-alt]").forEach(b=>b.onclick=()=>{
+  if(b.dataset.alt==="wait"){if(!st.table)st.table="4";st.waitMin=40}else{st.table=null;st.waitMin=20}
+  st.waitLeft=b.dataset.alt==="wait"?7:4;go("4");
+});
+
+function fillSummary(){
+  $("#sG").textContent=st.guests;$("#sT").textContent=tName();$("#sW").textContent="≈ "+st.waitMin+" минут";
+  const bad=$("#scn").value==="bad"&&!$("#phoneIn").dataset.shown;
+  if(bad){$("#phoneIn").value="+7 900 12";$("#phoneIn").dataset.shown=1;$("#phoneIn").classList.add("bad");$("#perr").textContent="Проверьте номер: в нём не хватает цифр. Мы пришлём сообщение именно на него."}
+}
+$("#phoneIn").addEventListener("input",()=>{$("#phoneIn").classList.remove("bad");$("#perr").textContent=""});
+$("#confirm").onclick=()=>{
+  const v=$("#phoneIn").value.replace(/\D/g,"");
+  if(v.length<11){$("#phoneIn").classList.add("bad");$("#perr").textContent="Проверьте номер: нужно 11 цифр, например +7 900 123-45-67.";return}
+  toast("Готово! Вы в очереди под номером А-17");updateWait();go("5");
+};
+
+function updateWait(){
+  const min=Math.max(5,st.waitLeft*5);
+  $("#wait").textContent=st.waitLeft===1?"Перед вами 1 группа · ~5 мин":`Перед вами ${st.waitLeft} ${st.waitLeft<5?"группы":"групп"} · ~${min} мин`;
+  $("#prog").style.width=Math.min(100,100-st.waitLeft*13)+"%";
+}
+$("#refresh").onclick=()=>{
+  if(st.waitLeft>1)st.waitLeft--;
+  updateWait();toast(st.waitLeft===1?"Почти ваша очередь!":"Статус обновлён");
+  if(st.waitLeft===1)setTimeout(()=>go("7"),1400);
+};
+
+// меню
+function buildMenu(){
+  const m=$("#menu");m.innerHTML="";
+  dishes.forEach(([e,t,s,p],i)=>{
+    const d=document.createElement("div");d.className="dish";
+    d.innerHTML=`<div class="e">${e}</div><div class="t"><b>${t}</b><span>${s} · ${p} ₽</span></div><button class="add">Добавить</button>`;
+    const b=d.querySelector("button");
+    b.onclick=()=>{if(st.cart[i]){delete st.cart[i];b.textContent="Добавить";b.classList.remove("in")}else{st.cart[i]=1;b.textContent="✓ В заказе";b.classList.add("in")}cart()};
+    m.appendChild(d);
+  });cart();
+}
+function cart(){const ks=Object.keys(st.cart);$("#cCount").textContent=ks.length;$("#cSum").textContent=ks.reduce((a,k)=>a+dishes[k][3],0)+" ₽";$("#pay").disabled=!ks.length}
+$("#pay").onclick=()=>{toast("Заказ принят. Блюда начнут готовить к вашему приходу");go("7")};
+
+// стол готов; в сценарии «не пришёл» таймер идёт ускоренно
+function startTimer(){
+  $("#rT").textContent=tName()==="любой подходящий"?"№ 4 у окна":tName();
+  const late=$("#scn").value==="late";let s=600;const el=$("#timer");
+  $("#tmNote").textContent=late?"Для демо время идёт быстрее. Не нажимайте «Я иду».":"";
+  const f=()=>{el.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
+    if(s<=0){clearInterval(tm);if(late)go("7b");return}s-=late?30:1};
+  f();tm=setInterval(f,late?700:1000);
+}
+function fillFinal(){
+  $("#tkInfo").textContent=`${st.guests} ${plural(st.guests)} · столик ${$("#rT").textContent}`;
+  const ks=Object.keys(st.cart);
+  $("#orderInfo").textContent=ks.length?"Ваш предзаказ: "+ks.map(k=>dishes[k][1]).join(", ")+". Принесём сразу, как только вы сядете.":"Предзаказа нет, меню принесут за столом.";
+}
+$("#show").onclick=()=>toast("Администратор увидел номер А-17. Приятного аппетита!");
+
+function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove("show"),2600)}
+
+// сброс
+function reset(){
+  fresh();clearInterval(tm);$("#guests").textContent=2;
+  const p=$("#phoneIn");p.value="";p.classList.remove("bad");delete p.dataset.shown;$("#perr").textContent="";
+  note("Выберите столик или оставьте «любой подходящий»: так вы сядете быстрее.");
+  renderHall();buildMenu();updateWait();go("1");
+}
+$("#reset").onclick=reset;$("#scn").onchange=reset;
+["#restart5","#restart7","#restart8"].forEach(s=>$(s).onclick=reset);
+setInterval(()=>{const d=new Date();$("#clock").textContent=d.toTimeString().slice(0,5)},10000);
+$("#clock").textContent=new Date().toTimeString().slice(0,5);
+reset();
+</script>
+</body>
+</html>
