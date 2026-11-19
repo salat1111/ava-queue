@@ -68,7 +68,9 @@ h2{font:600 23px/1.2 var(--serif);margin-bottom:8px}
 .hall{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
 .tbl{all:unset;cursor:pointer;box-sizing:border-box;border-radius:14px;padding:9px 4px;text-align:center;font-size:11.5px;border:2px solid transparent;background:#fff;line-height:1.3}
 .tbl b{display:block;font-size:14px}
-.tbl.free{border-color:var(--free)} .tbl.soon{border-color:var(--soon)} .tbl.busy{border-color:#ddd;color:#a9a39a;background:#f1eee6;cursor:not-allowed}
+.tbl.soon{border-color:var(--soon)} .tbl.later{border-color:#cfc8b8}
+.tbl em{display:block;font-style:normal;font-weight:600;margin-top:3px;color:var(--gold-t)}
+.tbl.sel em{color:var(--gold)}
 .tbl.sel{background:var(--ink);color:#fff;border-color:var(--ink)}
 .tbl.small{opacity:.4;pointer-events:none}
 .legend{display:flex;gap:12px;font-size:11.5px;color:var(--muted);margin-top:8px}
@@ -87,11 +89,13 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
 .pbar{height:7px;border-radius:8px;background:rgba(255,255,255,.18);margin-top:14px;overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--gold);border-radius:8px;transition:width .5s}
 /* 6 */
-.dish{display:flex;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
-.dish:last-child{border:0}
-.dish .e{width:46px;height:46px;border-radius:14px;background:#F1EDD6;display:grid;place-items:center;font-size:23px}
-.dish .t{flex:1} .dish .t b{display:block;font-size:14.5px} .dish .t span{font-size:12px;color:var(--muted)}
-.add{all:unset;cursor:pointer;background:var(--ink);color:#fff;padding:8px 13px;border-radius:20px;font-size:13px;font-weight:600}
+.menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.dish{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.dish img{width:100%;height:96px;object-fit:cover;display:block;background:#F1EDD6}
+.dish .t{padding:9px 10px 4px;flex:1} .dish .t b{display:block;font-size:13.5px;line-height:1.25} .dish .t span{font-size:11.5px;color:var(--muted)}
+.dish .row{padding:0 10px 10px}
+.dish .row b{font-size:14px}
+.add{all:unset;cursor:pointer;background:var(--ink);color:#fff;padding:7px 11px;border-radius:20px;font-size:12px;font-weight:600}
 .add.in{background:var(--free)}
 .cartbar{display:flex;justify-content:space-between;margin-top:10px;font-weight:700;font-size:14.5px}
 /* 7, 8 */
@@ -150,9 +154,9 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
       <p class="sub">Запишитесь в очередь, и мы позовём вас, когда стол освободится. Можно прогуляться по Малой Бронной.</p>
       <div class="stat">
         <div><b>5</b><span>групп перед вами</span></div>
-        <div><b>~25 мин</b><span>примерное ожидание</span></div>
+        <div><b data-at="25">19:30</b><span>стол будет готов примерно к этому времени</span></div>
       </div>
-      <div class="card"><div class="row"><span>🍽 Обычно ждут</span><b>20–30 минут</b></div></div>
+      <div class="card"><div class="row"><span>🕒 Ближайший стол освободится</span><b>к <span data-at="25">19:30</span></b></div></div>
       <div class="grow"></div>
       <button class="btn" data-go="3">Встать в очередь</button>
     </section>
@@ -163,8 +167,8 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
       <div class="stepper"><button id="minus" aria-label="Меньше">−</button><b id="guests">2</b><button id="plus" aria-label="Больше">+</button></div>
       <p class="sub" style="text-align:center">гостей</p>
       <div class="hall" id="hall"></div>
-      <div class="legend"><span><i style="background:var(--free)"></i>свободен</span><span><i style="background:var(--soon)"></i>скоро освободится</span><span><i style="background:#ccc"></i>занят</span></div>
-      <div class="note" id="tnote">Выберите столик или оставьте «любой подходящий»: так вы сядете быстрее.</div>
+      <div class="legend"><span><i style="background:var(--soon)"></i>освободится первым</span><span><i style="background:#cfc8b8"></i>освободится позже</span></div>
+      <div class="note" id="tnote">Все столы заняты. На каждом указано, к какому времени он освободится.</div>
       <div class="grow"></div>
       <button class="btn" id="next3">Продолжить</button>
     </section>
@@ -174,8 +178,8 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
       <div class="big" style="font-size:44px;margin-top:8px">🪑</div>
       <h2 style="text-align:center">Этот стол сейчас занят</h2>
       <p class="sub" style="text-align:center">За столом <b id="altT">№ 4 у окна</b> гости только что заказали десерт. Выберите, как поступить.</p>
-      <button class="opt" data-alt="wait"><b>Подождать этот стол</b><span>Около 40 минут. Стол закрепим за вами.</span></button>
-      <button class="opt" data-alt="any"><b>Любой подходящий стол</b><span>Около 20 минут. Посадим туда, где освободится раньше.</span></button>
+      <button class="opt" data-alt="wait"><b>Подождать этот стол</b><span>Освободится примерно к <b id="altWait" style="display:inline;font-size:13px">19:50</b>. Стол закрепим за вами.</span></button>
+      <button class="opt" data-alt="any"><b>Любой подходящий стол</b><span>Примерно к <b id="altAny" style="display:inline;font-size:13px">19:30</b>. Посадим туда, где освободится раньше.</span></button>
       <div class="grow"></div>
       <button class="restart" data-go="3">Выбрать другой стол</button>
     </section>
@@ -189,7 +193,7 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
       <div class="card sum"><ul>
         <li><span>Гостей</span><b id="sG">2</b></li>
         <li><span>Столик</span><b id="sT">любой подходящий</b></li>
-        <li><span>Ожидание</span><b id="sW">≈ 25 минут</b></li>
+        <li><span>Стол будет готов</span><b id="sW">к 19:30</b></li>
       </ul></div>
       <div class="grow"></div>
       <button class="btn" id="confirm">Подтвердить</button>
@@ -197,7 +201,7 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
 
     <section class="screen" data-s="5">
       <div class="top"><span>Вы в очереди</span><span class="tag">AVA на Патриарших</span></div>
-      <div class="num"><small>Ваш номер</small><b>А-17</b><small id="wait">Перед вами 5 групп · ~25 мин</small><div class="pbar"><i id="prog" style="width:15%"></i></div></div>
+      <div class="num"><small>Ваш номер</small><b>А-17</b><small id="wait">Перед вами 5 групп · стол примерно к 19:30</small><div class="pbar"><i id="prog" style="width:15%"></i></div></div>
       <p class="sub" style="margin-top:12px">Можно спокойно отойти. Мы напишем, когда перед вами останется одна группа.</p>
       <button class="btn ghost" id="refresh">Обновить статус</button>
       <div class="grow"></div>
@@ -208,7 +212,7 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
     <section class="screen" data-s="6">
       <div class="top"><span>Меню</span><span class="tag">А-17 · ждём стол</span></div>
       <h2>Закажите заранее: блюда будут к вашему приходу</h2>
-      <div class="card" style="padding:2px 14px" id="menu"></div>
+      <div class="menu" id="menu"></div>
       <div class="cartbar"><span>В корзине: <span id="cCount">0</span></span><span id="cSum">0 ₽</span></div>
       <div class="grow"></div>
       <button class="btn" id="pay" disabled>Заказать и оплатить</button>
@@ -219,7 +223,7 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
       <div class="top"><span>AVA Queue</span><span class="tag">А-17</span></div>
       <div class="big">🔔</div>
       <h2 style="text-align:center">Ваш стол готов!</h2>
-      <p class="sub" style="text-align:center">Столик <b id="rT">№ 4 у окна</b> ждёт вас. Мы держим его 10 минут.</p>
+      <p class="sub" style="text-align:center">Столик <b id="rT">№ 4 у окна</b> ждёт вас. Мы держим его до <b id="holdT">19:40</b>.</p>
       <div class="card" style="text-align:center"><span class="sub">Осталось на подход</span><div style="font:600 34px var(--serif)" id="timer">10:00</div><span class="sub" id="tmNote" style="font-size:12px"></span></div>
       <div class="grow"></div>
       <button class="btn" data-go="8">Я иду</button>
@@ -251,8 +255,15 @@ input:focus{outline:none;border-color:var(--ink)} input.bad{border-color:var(--b
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const titles={"1":"Экран 1 · QR-код у входа","2":"Экран 2 · Открыт сервис","3":"Экран 3 · Выбор гостей и стола","3b":"Экран 3б · Стол занят","4":"Экран 4 · Подтверждение записи","5":"Экран 5 · Ожидание стола","6":"Экран 6 · Меню и предзаказ","7":"Экран 7 · Стол готов","7b":"Экран 7б · Время вышло","8":"Экран 8 · Посадка"};
-const tables=[["1","2 места","free",2],["2","2 места","busy",2],["3","4 места","soon",4],["4","у окна, 4 места","free",4],["5","4 места","busy",4],["6","6 мест","soon",6],["7","6 мест","free",6],["8","8 мест","busy",8],["9","диван, 4 места","free",4]];
-const dishes=[["🍲","Борщ с пампушками","Подаётся горячим",390],["🥟","Пельмени домашние","Со сметаной",450],["🥗","Салат с печёной свёклой","Козий сыр, орехи",420],["🍰","Медовик","Порция на двоих",310]];
+// все столы заняты; последнее число — через сколько минут стол освободится
+const tables=[["1","2 места",2,25],["2","2 места",2,35],["3","4 места",4,25],["4","у окна, 4 места",4,40],["5","4 места",4,30],["6","6 мест",6,30],["7","6 мест",6,45],["8","8 мест",8,50],["9","диван, 4 места",4,35]];
+// конкретное время: сейчас + N минут, с округлением вверх до 5 минут
+function at(min){const d=new Date(Date.now()+min*60000);d.setMinutes(Math.ceil(d.getMinutes()/5)*5,0,0);return d.toTimeString().slice(0,5)}
+function fits(){return tables.filter(t=>t[2]>=st.guests)}
+function earliest(){return Math.min(...fits().map(t=>t[3]))}
+// фото блюд с Unsplash (бесплатный фотобанк)
+const IMG=id=>`https://images.unsplash.com/photo-${id}?w=400&h=300&fit=crop&q=70`;
+const dishes=[[IMG("1780814303735-686588637714"),"Борщ с пампушками","Подаётся горячим",390],[IMG("1716834092803-08c8dca5226f"),"Пельмени домашние","Со сметаной",450],[IMG("1561043433-aaf687c4cf04"),"Салат с печёной свёклой","Козий сыр, орехи",420],[IMG("1624000961428-eeece184988b"),"Медовик","Порция на двоих",310]];
 let st,tm;
 function fresh(){st={guests:2,table:null,cart:{},waitLeft:5,waitMin:25}}
 
@@ -260,7 +271,9 @@ function go(id){
   $$(".screen").forEach(s=>s.classList.toggle("on",s.dataset.s===id));
   $("#cap").textContent=titles[id];
   clearInterval(tm);
-  if(id==="3b")$("#altT").textContent=tName()==="любой подходящий"?"№ 4 у окна":tName();
+  $$("[data-at]").forEach(e=>e.textContent=at(+e.dataset.at));
+  if(id==="3b"){if(!st.table||tables.find(x=>x[0]===st.table)[2]<st.guests)st.table=fits().find(t=>t[0]==="4")?"4":fits()[0][0];
+    $("#altT").textContent=tName();$("#altWait").textContent=at(tables.find(x=>x[0]===st.table)[3]+15);$("#altAny").textContent=at(earliest())}
   if(id==="4")fillSummary();
   if(id==="7")startTimer();
   if(id==="8")fillFinal();
@@ -276,33 +289,33 @@ function tName(){const t=tables.find(x=>x[0]===st.table);return t?`№ ${t[0]}${
 function plural(n){return n===1?"гость":(n<5?"гостя":"гостей")}
 function note(t){$("#tnote").textContent=t}
 function renderHall(){
-  const h=$("#hall");h.innerHTML="";
-  tables.forEach(([n,d,state,cap])=>{
+  const h=$("#hall");h.innerHTML="";const first=earliest();
+  tables.forEach(([n,d,cap,min])=>{
     const b=document.createElement("button");
-    b.className=`tbl ${state}${cap>=st.guests?"":" small"}${st.table===n?" sel":""}`;
-    b.innerHTML=`<b>№ ${n}</b>${d}`;
+    b.className=`tbl ${min===first?"soon":"later"}${cap>=st.guests?"":" small"}${st.table===n?" sel":""}`;
+    b.innerHTML=`<b>№ ${n}</b>${d}<em>к ${at(min)}</em>`;
     b.onclick=()=>{
-      if(state==="busy"){note("Этот стол занят. Выберите другой или «любой подходящий»: так быстрее.");return}
       st.table=st.table===n?null:n;
-      note(st.table?(state==="soon"?`Стол № ${n} скоро освободится. Ждать его придётся чуть дольше, около 35 минут.`:`Стол № ${n} свободен для вашей компании. Ожидание не изменится.`):"Выбор снят: посадим за любой подходящий стол.");
+      note(st.table?`Стол № ${n} освободится примерно к ${at(min)}. Мы закрепим его за вами.`+(min>first?` Любой подходящий будет раньше, к ${at(first)}.`:""):`Выбор снят: посадим за первый подходящий стол, примерно к ${at(first)}.`);
       renderHall();
     };
     h.appendChild(b);
   });
+  st.waitMin=st.table?tables.find(x=>x[0]===st.table)[3]:first;
 }
-function sync(){$("#guests").textContent=st.guests;const t=tables.find(x=>x[0]===st.table);if(t&&t[3]<st.guests)st.table=null;renderHall()}
+function sync(){$("#guests").textContent=st.guests;const t=tables.find(x=>x[0]===st.table);if(t&&t[2]<st.guests)st.table=null;renderHall()}
 $("#plus").onclick=()=>{if(st.guests<8){st.guests++;sync()}};
 $("#minus").onclick=()=>{if(st.guests>1){st.guests--;sync()}};
 
 // продолжить с экрана 3: в сценарии «нет стола» показываем экран 3б
 $("#next3").onclick=()=>go($("#scn").value==="alt"?"3b":"4");
 $$("[data-alt]").forEach(b=>b.onclick=()=>{
-  if(b.dataset.alt==="wait"){if(!st.table)st.table="4";st.waitMin=40}else{st.table=null;st.waitMin=20}
-  st.waitLeft=b.dataset.alt==="wait"?7:4;go("4");
+  if(b.dataset.alt==="wait"){st.waitMin=tables.find(x=>x[0]===st.table)[3]+15}else{st.table=null;st.waitMin=earliest()}
+  go("4");
 });
 
 function fillSummary(){
-  $("#sG").textContent=st.guests;$("#sT").textContent=tName();$("#sW").textContent="≈ "+st.waitMin+" минут";
+  $("#sG").textContent=st.guests;$("#sT").textContent=tName();$("#sW").textContent="к "+at(st.waitMin);
   const bad=$("#scn").value==="bad"&&!$("#phoneIn").dataset.shown;
   if(bad){$("#phoneIn").value="+7 900 12";$("#phoneIn").dataset.shown=1;$("#phoneIn").classList.add("bad");$("#perr").textContent="Проверьте номер: в нём не хватает цифр. Мы пришлём сообщение именно на него."}
 }
@@ -310,13 +323,16 @@ $("#phoneIn").addEventListener("input",()=>{$("#phoneIn").classList.remove("bad"
 $("#confirm").onclick=()=>{
   const v=$("#phoneIn").value.replace(/\D/g,"");
   if(v.length<11){$("#phoneIn").classList.add("bad");$("#perr").textContent="Проверьте номер: нужно 11 цифр, например +7 900 123-45-67.";return}
+  st.waitLeft=Math.max(2,Math.round(st.waitMin/5));
   toast("Готово! Вы в очереди под номером А-17");updateWait();go("5");
 };
 
 function updateWait(){
-  const min=Math.max(5,st.waitLeft*5);
-  $("#wait").textContent=st.waitLeft===1?"Перед вами 1 группа · ~5 мин":`Перед вами ${st.waitLeft} ${st.waitLeft<5?"группы":"групп"} · ~${min} мин`;
-  $("#prog").style.width=Math.min(100,100-st.waitLeft*13)+"%";
+  // время готовности сдвигается вместе с очередью: 5 минут на группу
+  const min=Math.max(5,st.waitLeft*5),g=st.waitLeft;
+  const word=g%10===1&&g!==11?"группа":(g%10>=2&&g%10<=4&&(g<12||g>14)?"группы":"групп");
+  $("#wait").textContent=`Перед вами ${g} ${word} · стол примерно к ${at(min)}`;
+  $("#prog").style.width=Math.max(10,Math.min(100,100-g*9))+"%";
 }
 $("#refresh").onclick=()=>{
   if(st.waitLeft>1)st.waitLeft--;
@@ -329,7 +345,7 @@ function buildMenu(){
   const m=$("#menu");m.innerHTML="";
   dishes.forEach(([e,t,s,p],i)=>{
     const d=document.createElement("div");d.className="dish";
-    d.innerHTML=`<div class="e">${e}</div><div class="t"><b>${t}</b><span>${s} · ${p} ₽</span></div><button class="add">Добавить</button>`;
+    d.innerHTML=`<img src="${e}" alt="${t}"><div class="t"><b>${t}</b><span>${s}</span></div><div class="row"><b>${p} ₽</b><button class="add">Добавить</button></div>`;
     const b=d.querySelector("button");
     b.onclick=()=>{if(st.cart[i]){delete st.cart[i];b.textContent="Добавить";b.classList.remove("in")}else{st.cart[i]=1;b.textContent="✓ В заказе";b.classList.add("in")}cart()};
     m.appendChild(d);
@@ -340,7 +356,8 @@ $("#pay").onclick=()=>{toast("Заказ принят. Блюда начнут �
 
 // стол готов; в сценарии «не пришёл» таймер идёт ускоренно
 function startTimer(){
-  $("#rT").textContent=tName()==="любой подходящий"?"№ 4 у окна":tName();
+  $("#rT").textContent=tName()==="любой подходящий"?"№ "+fits().find(t=>t[3]===earliest())[0]:tName();
+  $("#holdT").textContent=new Date(Date.now()+600000).toTimeString().slice(0,5);
   const late=$("#scn").value==="late";let s=600;const el=$("#timer");
   $("#tmNote").textContent=late?"Для демо время идёт быстрее. Не нажимайте «Я иду».":"";
   const f=()=>{el.textContent=String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0");
@@ -360,7 +377,7 @@ function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show")
 function reset(){
   fresh();clearInterval(tm);$("#guests").textContent=2;
   const p=$("#phoneIn");p.value="";p.classList.remove("bad");delete p.dataset.shown;$("#perr").textContent="";
-  note("Выберите столик или оставьте «любой подходящий»: так вы сядете быстрее.");
+  note("Все столы заняты. На каждом указано, к какому времени он освободится.");
   renderHall();buildMenu();updateWait();go("1");
 }
 $("#reset").onclick=reset;$("#scn").onchange=reset;
